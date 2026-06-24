@@ -4,18 +4,18 @@
 // ---- Datos de personajes (única fuente de verdad). stats 1..5 ----
 const CHARS = [
   // jump: fotos (1-based) de despegue → aire (sostenida) → aterrizaje
-  { id:'peppi', nombre:'PEPPI', color:'var(--verde)',
-    stats:{ velocidad:2, salto:3, daño:5 }, frames:{ correr:6, saltar:7 },
+  { id:'peppi', nombre:'PEPPI', color:'var(--marron)',
+    stats:{ velocidad:2, salto:4, daño:5 }, frames:{ correr:6, saltar:7 },
     jump:{ despegue:[], aire:7, aterriza:[3,4,6] },
-    desc:'El más fuerte. Lento y de salto normal, pero su pisotón es demoledor.' },
-  { id:'matti', nombre:'MATTI', color:'var(--naranja)',
-    stats:{ velocidad:5, salto:4, daño:2 }, frames:{ correr:6, saltar:6 },
+    desc:'El más fuerte. Lento, pero salta bien y su pisotón es demoledor.' },
+  { id:'matti', nombre:'MATTI', color:'var(--amarillo)',
+    stats:{ velocidad:5, salto:4, daño:1 }, frames:{ correr:6, saltar:6 },
     jump:{ despegue:[], aire:2, aterriza:[5] },
     desc:'El más ágil y veloz. Buen salto, aunque su pisotón es flojito.' },
-  { id:'gatti', nombre:'GATTI', color:'var(--azul)',
-    stats:{ velocidad:2, salto:5, daño:3 }, frames:{ correr:6, saltar:5 },
+  { id:'gatti', nombre:'GATTI', color:'var(--rojo)',
+    stats:{ velocidad:3, salto:5, daño:3 }, frames:{ correr:6, saltar:5 },
     jump:{ despegue:[], aire:3, aterriza:[4,5] },
-    desc:'El saltarín: llega altísimo. Se mueve tranquilo y pega parejo.' },
+    desc:'El saltarín: llega altísimo, y ahora se mueve un toque más rápido.' },
 ];
 
 console.assert(CHARS.length === 3, 'deben ser 3 personajes');
@@ -50,16 +50,13 @@ function statsHTML(stats){
     <div class="stat"><span class="lbl">${STAT_LABELS[k]}</span>
       <span class="pips">${pipsHTML(v)}</span></div>`).join('');
 }
-function buildCards(){
-  const cont = $('#cards');
-  cont.innerHTML = CHARS.map((c, i) => `
-    <div class="card" data-i="${i}" style="--c:${c.color}">
-      <h3>${c.nombre}</h3>
-      <img class="retrato" src="assets/personajes/${c.id}/estatico/1.png" alt="${c.nombre}">
-      <div class="stats">${statsHTML(c.stats)}</div>
-      <p class="desc">${c.desc}</p>
-    </div>`).join('');
-  cont.querySelectorAll('.card').forEach(el => {
+function fillStatBox(c){
+  const box = $('#statbox');
+  box.style.setProperty('--c', c.color);
+  box.innerHTML = `<h3>${c.nombre}</h3>${statsHTML(c.stats)}<p class="desc">${c.desc}</p>`;
+}
+function bindSelect(){
+  document.querySelectorAll('.hot').forEach(el => {
     const i = +el.dataset.i;
     el.addEventListener('mouseenter', () => setSelected(i));
     el.addEventListener('click', () => { setSelected(i); choose(); });
@@ -69,8 +66,9 @@ function buildCards(){
 let selIndex = 0;
 function setSelected(i){
   selIndex = (i + CHARS.length) % CHARS.length;
-  document.querySelectorAll('.card').forEach((el, idx) =>
-    el.classList.toggle('selected', idx === selIndex));
+  document.querySelectorAll('.hot').forEach(el =>
+    el.classList.toggle('active', +el.dataset.i === selIndex));
+  fillStatBox(CHARS[selIndex]);
 }
 
 let state = 'title';
@@ -81,8 +79,9 @@ $('#btn-jugar').addEventListener('click', goSelect);
 document.addEventListener('keydown', e => {
   if (state === 'title' && (e.key === 'Enter' || e.key === ' ')) goSelect();
   else if (state === 'select'){
-    if (e.key === 'ArrowRight') setSelected(selIndex + 1);
-    else if (e.key === 'ArrowLeft') setSelected(selIndex - 1);
+    const order = [2, 0, 1], pos = order.indexOf(selIndex);   // izq→der: gatti,peppi,matti
+    if (e.key === 'ArrowRight') setSelected(order[(pos + 1) % 3]);
+    else if (e.key === 'ArrowLeft') setSelected(order[(pos + 2) % 3]);
     else if (e.key === 'Enter') choose();
   }
 });
@@ -94,9 +93,9 @@ document.addEventListener('keydown', e => {
 // ---- Tuning (todo acá para calibrar fácil) ----
 const GRAVITY = 0.6, ACCEL = 0.9, FRICTION = 0.82;
 const LEVEL_W = 5200, GROUND_Y = 470;
-const PLAYER_H = 128, SODA_H = 104, PROJ_H = 56;
+const PLAYER_H = 128, SODA_H = 140, PROJ_H = 56;
 const PLAYER_HB = { w:36, h:116 };          // hitbox del jugador
-const SODA_HB   = { w:50, h:88 };
+const SODA_HB   = { w:66, h:118 };
 const PROJ_HB   = { w:30, h:22 };
 const PROJ_ANCHOR = { x:0.62, y:0.52 };     // dónde está el chorro dentro de su PNG
 const INVULN = 80, MAX_HEARTS = 3;
@@ -107,23 +106,42 @@ const speedOf = s => 3.2 + s.velocidad * 0.5;
 const jumpOf  = s => 11  + s.salto     * 0.95;
 
 // ---- Jefe / arena (Etapa 3) ----
-const BOSS_H = 230, BOSS_HB = { w:120, h:180 }, BOSS_HP = 12;
+const BOSS_H = 230, BOSS_HB = { w:120, h:180 }, BOSS_HP = 17;   // Peppi (daño 5): 4 golpes
 const ARENA_X0 = LEVEL_W - CW;                  // cámara fija en la pelea
 const BOSS_X = ARENA_X0 + CW/2 - BOSS_HB.w/2;   // jefe centrado en la arena
 const BOSS_TRIGGER_X = ARENA_X0 + 110;          // el jugador entra y se frena acá
 
+// ---- Árboles-plataforma (sprite con 3 superficies de contacto) ----
+const TREE_AR = 1982 / 1315;              // proporción del sprite
+const TREE_H = 240, TREE_W = TREE_H * TREE_AR;
+const TREE_X = [720, 1560, 2450, 3260];   // centros; el tronco apoya en el piso
+// superficies medidas del sprite, en fracciones [xIni, xFin, yTope]
+const TREE_SURF = [
+  [0.06, 0.95, 0.42],   // losa grande (media)
+  [0.28, 0.66, 0.05],   // losa de arriba
+  [0.70, 0.90, 0.27],   // losa derecha
+];
+function treePlatforms(cx){               // hitboxes one-way alineadas al sprite
+  const left = cx - TREE_W/2, top = GROUND_Y - TREE_H;
+  return TREE_SURF.map(([a, b, yf]) => ({
+    x: left + a*TREE_W, y: top + yf*TREE_H, w: (b-a)*TREE_W, h: 14, tree:true,
+  }));
+}
+
+// ---- Piso (sprite) con agujero intencional: caer = perder las 3 vidas ----
+const PISO_AR = 21210 / 552;
+const HOLE_X0 = Math.round(0.530 * LEVEL_W);   // agujero del piso
+const HOLE_X1 = Math.round(0.557 * LEVEL_W);
+
 // ---- Layout del nivel ----
 const PLATFORMS = [
-  { x:0, y:GROUND_Y, w:LEVEL_W, h:CH-GROUND_Y, solid:true },   // piso (sólido)
-  { x:600,  y:360, w:170, h:24 },
-  { x:1120, y:300, w:170, h:24 },
-  { x:1780, y:350, w:190, h:24 },
-  { x:2520, y:320, w:170, h:24 },
-  { x:3200, y:360, w:210, h:24 },
-  { x:ARENA_X0+120, y:300, w:160, h:24 },   // arena: plataforma izquierda
-  { x:ARENA_X0+680, y:360, w:160, h:24 },   // arena: plataforma derecha (más baja)
+  { x:0,        y:GROUND_Y, w:HOLE_X0,          h:CH-GROUND_Y, solid:true },  // piso izq.
+  { x:HOLE_X1,  y:GROUND_Y, w:LEVEL_W-HOLE_X1,  h:CH-GROUND_Y, solid:true },  // piso der.
+  ...TREE_X.flatMap(treePlatforms),                            // superficies de los árboles
+  { x:ARENA_X0+110, y:345, w:200, h:14, slab:true },   // arena izquierda (slab, bajada)
+  { x:ARENA_X0+660, y:360, w:200, h:14, slab:true },   // arena derecha (slab)
 ];
-const SODA_X    = [880, 1420, 2080, 2780, 3300];   // ninguna cerca de la arena (zona pelada)
+const SODA_X    = [880, 1420, 2080, 3300];         // saco la que caía sobre el agujero
 const PICKUP_XY = [[1180, 250], [2560, 270], [3380, 300]];
 
 // ---- Carga de imágenes ----
@@ -139,7 +157,8 @@ const loadFrames = (dir, n) =>
 
 async function loadAssets(char){
   const base = `assets/personajes/${char.id}`;
-  const [estatico, correr, saltar, sodaMover, sodaAtacar, proyectil, jefeMover, jefeMuerte] = await Promise.all([
+  const [estatico, correr, saltar, sodaMover, sodaAtacar, proyectil, jefeMover, jefeMuerte,
+         vidaHud, vidaPick, fondo1, fondo2, tree, slab, piso, bossBar] = await Promise.all([
     loadFrames(`${base}/estatico`, 1),
     loadFrames(`${base}/correr`, char.frames.correr),
     loadFrames(`${base}/saltar`, char.frames.saltar),
@@ -148,11 +167,22 @@ async function loadAssets(char){
     loadImg('assets/enemigos/proyectil/1.png'),
     loadFrames('assets/enemigos/jefe/mover', 6),
     loadFrames('assets/enemigos/jefe/muerte', 3),
+    loadImg('assets/vidas/1.png'),          // corazón HUD
+    loadImg('assets/vidas/2.png'),          // vida suelta (comida)
+    loadImg('assets/fondos/1.png'),         // fondo nivel
+    loadImg('assets/fondos/2.png'),         // fondo jefe
+    loadImg('assets/plataformas/1.png'),    // árbol-plataforma
+    loadImg('assets/plataformas/2.png'),    // slab (arena del jefe)
+    loadImg('assets/plataformas/piso/1.png'),               // piso del nivel
+    loadFrames('assets/enemigos/jefe/barra', 5),            // barra de vida del jefe (5 estados)
   ]);
   gfx.player = { estatico, correr, saltar };
   gfx.soda = { mover: sodaMover, atacar: sodaAtacar };
   gfx.proyectil = proyectil;
   gfx.boss = { mover: jefeMover, muerte: jefeMuerte };
+  gfx.vidaHud = vidaHud; gfx.vidaPick = vidaPick;
+  gfx.fondo1 = fondo1; gfx.fondo2 = fondo2; gfx.tree = tree; gfx.slab = slab;
+  gfx.piso = piso; gfx.bossBar = bossBar;
 }
 
 // ---- Estado del juego ----
@@ -171,6 +201,7 @@ async function startGame(char){
   showScreen('game');
   const ov = overlay(`<h2>Cargando…</h2>`);
   await loadAssets(char);
+  new Image().src = `assets/pantallas/muerte/${char.id}/1.png`;   // precarga la pantalla de muerte
   ov.remove();
 
   player = {
@@ -270,6 +301,7 @@ function update(){
   }
 
   updateProjectiles(p);
+  if (p.y > CH) p.hearts = 0;            // cayó al agujero → pierde todo de una
   if (p.hearts <= 0){ mode = 'over'; gameOver(); }
 }
 
@@ -284,7 +316,7 @@ function updateSodas(p){
       s.face = s.dir;
     }
     if (--s.cd <= 0 && Math.abs(dx) < 430){
-      s.attack = 24; s.cd = 150;
+      s.attack = 60; s.cd = 180;
       const sign = dx < 0 ? -1 : 1;
       s.face = sign;
       projectiles.push({ x:s.x + s.w/2 + sign*30, y:s.y + 26, vx:sign*4.6, face:sign });
@@ -320,6 +352,11 @@ function updateBoss(p){
   if (b.inv > 0) b.inv--;
   if (!b.dying){
     b.face = (p.x + p.w/2) < (b.x + b.w/2) ? -1 : 1;
+    if (b.hp <= b.maxHp / 2){          // pasada la mitad, se mueve de lado a lado (más rápido)
+      b.x += b.mdir * 1.5;
+      const lo = ARENA_X0 + 60, hi = ARENA_X0 + CW - b.w - 60;
+      if (b.x < lo){ b.x = lo; b.mdir = 1; } else if (b.x > hi){ b.x = hi; b.mdir = -1; }
+    }
     if (--b.cd <= 0){                  // dispara seguido (agresivo)
       b.cd = 70;
       const sign = b.face;
@@ -327,10 +364,13 @@ function updateBoss(p){
     }
     if (rectsOverlap(p, b)){
       const cae = p.vy > 0 && (p.y + p.h) - b.y < 40;   // cae sobre la cabeza
-      if (cae && b.inv <= 0){
-        b.hp -= p.char.stats.daño; b.inv = 40; p.vy = -p.jump * 0.85;
-        if (b.hp <= 0){ b.dying = true; b.deadT = 0; }
-      } else if (!cae) hurt();
+      if (cae){
+        p.vy = -p.jump * 0.85;                            // siempre rebota
+        if (b.inv <= 0){                                  // solo daña si no es invencible
+          b.hp -= p.char.stats.daño; b.inv = 60;          // ~1s invencible (corta el exploit)
+          if (b.hp <= 0){ b.dying = true; b.deadT = 0; }
+        }
+      } else hurt();
     }
   } else if (++b.deadT >= gfx.boss.muerte.length * 12 + 36){
     mode = 'win'; winGame();
@@ -343,7 +383,7 @@ function startBossEntrance(){
   sodas = []; pickups = []; projectiles = [];
   boss = { x:BOSS_X, y:-BOSS_HB.h - 60, vy:0, landed:false,   // arranca arriba de pantalla
            w:BOSS_HB.w, h:BOSS_HB.h, hp:BOSS_HP, maxHp:BOSS_HP,
-           face:-1, cd:90, inv:0, dying:false, deadT:0 };
+           face:-1, mdir:1, cd:90, inv:0, dying:false, deadT:0 };
 }
 
 function updateBossEntrance(){
@@ -375,39 +415,41 @@ function drawSprite(img, cx, bottom, dispH, face){
   ctx.restore();
 }
 
-function drawHeart(cx, cy, s, color){
-  ctx.fillStyle = color;
-  const r = s * 0.28;
-  ctx.beginPath(); ctx.arc(cx - r, cy - r*0.5, r, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx + r, cy - r*0.5, r, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(cx - 2*r, cy - r*0.1); ctx.lineTo(cx, cy + s*0.55); ctx.lineTo(cx + 2*r, cy - r*0.1);
-  ctx.closePath(); ctx.fill();
-}
-
 function drawBackground(){
-  // cielo
-  const g = ctx.createLinearGradient(0, 0, 0, CH);
-  g.addColorStop(0, '#9fd8ff'); g.addColorStop(1, '#d9f0ff');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
-  // colinas (parallax suave)
-  ctx.fillStyle = '#7ec85a';
-  for (let i = -1; i < 6; i++){
-    const hx = i*700 - camX*0.4 % 700;
-    ctx.beginPath(); ctx.arc(hx + 350, GROUND_Y + 120, 320, Math.PI, 0); ctx.fill();
+  const enBoss = (mode === 'boss' || mode === 'bossin');
+  const img = enBoss ? gfx.fondo2 : gfx.fondo1;
+  if (!img){ ctx.fillStyle = '#bfe3ff'; ctx.fillRect(0, 0, CW, CH); return; }
+  if (enBoss){                                  // arena fija: una sola imagen (cover), sin costura
+    const s = Math.max(CW / img.naturalWidth, CH / img.naturalHeight);
+    const w = img.naturalWidth * s, h = img.naturalHeight * s;
+    ctx.drawImage(img, (CW - w)/2, (CH - h)/2, w, h);
+    return;
   }
+  // una sola imagen con parallax lento: cubre todo el nivel sin repetir → sin costura
+  const w = Math.round(CH * (img.naturalWidth / img.naturalHeight));
+  const f = (w - CW) / (LEVEL_W - CW);          // factor justo para cubrir el recorrido
+  ctx.drawImage(img, -Math.round(camX * f), 0, w, CH);
 }
 
-function drawGround(){
-  const y = GROUND_Y;
-  ctx.fillStyle = '#caa15a';                         // tierra
-  ctx.fillRect(0, y - camX*0 + 0, CW, CH - y);
-  ctx.fillStyle = '#3FB44A';                          // pasto
-  ctx.fillRect(0, y, CW, 16);
+function drawTrees(){
+  if (!gfx.tree) return;
+  const top = GROUND_Y - TREE_H;
+  for (const cx of TREE_X) ctx.drawImage(gfx.tree, cx - TREE_W/2 - camX, top, TREE_W, TREE_H);
+}
+
+function drawPiso(){            // el verde del sprite (~0.27) queda en GROUND_Y; agujero incluido
+  if (!gfx.piso) return;
+  const h = LEVEL_W / PISO_AR;
+  ctx.drawImage(gfx.piso, -camX, GROUND_Y - 0.27 * h, LEVEL_W, h);
 }
 
 function drawPlatform(pl){
-  if (pl.h > 60) return;                  // el piso lo dibuja drawGround
+  if (pl.solid || pl.tree) return;        // piso y árboles se dibujan aparte
+  if (pl.slab && gfx.slab){               // slab del jefe: superficie (0.27) alineada a pl.y
+    const dispW = pl.w, dispH = dispW * (206 / 1151);
+    ctx.drawImage(gfx.slab, pl.x - camX, pl.y - 0.27 * dispH, dispW, dispH);
+    return;
+  }
   const x = pl.x - camX;
   ctx.fillStyle = '#b06a2c';
   roundRect(x, pl.y, pl.w, pl.h, 8); ctx.fill();
@@ -442,20 +484,23 @@ function draw(){
   if (shake > 0.5){ ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); shake *= 0.88; }
   else shake = 0;
   drawBackground();
-  drawGround();
+  if (mode === 'play') drawPiso();
+  drawTrees();
   for (const pl of PLATFORMS) drawPlatform(pl);
 
-  // pickups
-  for (const k of pickups){
+  // pickups (vida suelta = comida), flotando
+  if (gfx.vidaPick) for (const k of pickups){
     if (k.taken) continue;
-    drawHeart(k.x - camX, k.y + Math.sin(k.t)*5, 30, '#E2362D');
+    const h = 90, w = h * gfx.vidaPick.naturalWidth / gfx.vidaPick.naturalHeight;
+    ctx.drawImage(gfx.vidaPick, k.x - camX - w/2, k.y + Math.sin(k.t)*6 - h/2, w, h);
   }
 
-  // sodas
+  // sodas (ataque más lento que la caminata)
   for (const s of sodas){
     if (s.dead) continue;
-    const arr = s.attack > 0 ? gfx.soda.atacar : gfx.soda.mover;
-    drawSprite(frameOf(arr, 8), s.x + s.w/2, s.y + s.h, SODA_H, s.face);
+    const atacando = s.attack > 0;
+    const arr = atacando ? gfx.soda.atacar : gfx.soda.mover;
+    drawSprite(frameOf(arr, atacando ? 16 : 8), s.x + s.w/2, s.y + s.h, SODA_H, s.face);
   }
 
   // proyectiles
@@ -475,7 +520,8 @@ function draw(){
     let img;
     if (boss.dying)
       img = gfx.boss.muerte[Math.min(Math.floor(boss.deadT / 12), gfx.boss.muerte.length - 1)];
-    else img = frameOf(gfx.boss.mover, 10);
+    else if (boss.hp <= boss.maxHp / 2) img = frameOf(gfx.boss.mover, 8);   // camina al moverse
+    else img = gfx.boss.mover[0];                                           // quieto: foto fija
     if (!(boss.inv > 0 && Math.floor(animTick/3) % 2))
       drawSprite(img, boss.x + boss.w/2, boss.y + boss.h, BOSS_H, boss.face);
   }
@@ -495,20 +541,25 @@ function draw(){
 }
 
 function drawHUD(){
-  for (let i = 0; i < MAX_HEARTS; i++)
-    drawHeart(40 + i*42, 40, 30, i < player.hearts ? '#E2362D' : 'rgba(255,255,255,.55)');
-  ctx.fillStyle = '#3a2a18'; ctx.font = "700 22px Nunito, sans-serif";
-  ctx.textAlign = 'right'; ctx.fillText(player.char.nombre, CW - 20, 46);
-  ctx.textAlign = 'left';
+  const img = gfx.vidaHud;
+  if (img){
+    const h = 40, w = h * img.naturalWidth / img.naturalHeight;
+    for (let i = 0; i < MAX_HEARTS; i++){
+      const bob = Math.sin(animTick * 0.06 + i * 0.9) * 4;   // flota suave
+      ctx.globalAlpha = i < player.hearts ? 1 : 0.22;
+      ctx.drawImage(img, 22 + i*(w+8), 20 + bob, w, h);
+    }
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawBossBar(){
-  const w = CW - 200, x = 100, y = 64, h = 26;
-  ctx.fillStyle = 'rgba(0,0,0,.22)'; roundRect(x-5, y-5, w+10, h+10, 9); ctx.fill();
-  ctx.fillStyle = '#5a3a2a'; roundRect(x, y, w, h, 6); ctx.fill();
-  ctx.fillStyle = '#E2362D'; roundRect(x, y, w * Math.max(0, boss.hp/boss.maxHp), h, 6); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = "700 18px DynaPuff, Nunito, sans-serif";
-  ctx.textAlign = 'center'; ctx.fillText('JEFE SODA', CW/2, y + h - 7); ctx.textAlign = 'left';
+  if (!gfx.bossBar) return;
+  const f = boss.hp / boss.maxHp;
+  const i = f > 0.75 ? 0 : f > 0.5 ? 1 : f > 0.25 ? 2 : f > 0 ? 3 : 4;   // lleno→3/4→½→¼→vacío
+  const img = gfx.bossBar[i]; if (!img) return;
+  const w = 440, h = w * img.naturalHeight / img.naturalWidth;
+  ctx.drawImage(img, (CW - w) / 2, -56, w, h);
 }
 
 // ---- Loop ----
@@ -530,8 +581,12 @@ function returnToSelect(ov){
   state = 'select'; showScreen('select'); setSelected(selIndex);
 }
 function gameOver(){
-  const ov = overlay(`<h2>¡PERDISTE!</h2><p>Te quedaste sin corazones.</p>
+  const id = player.char.id;
+  const ov = overlay(`
+    <div class="death-bg" style="background-image:url('assets/pantallas/muerte/${id}/1.png')"></div>
+    <h2>¡PERDISTE!</h2>
     <button class="btn">Volver</button>`);
+  ov.classList.add('death');
   ov.querySelector('button').onclick = () => returnToSelect(ov);
 }
 function winGame(){
@@ -550,6 +605,6 @@ function fitTV(){
 addEventListener('resize', fitTV);
 
 // init
-buildCards();
+bindSelect();
 showScreen('title');
 fitTV();

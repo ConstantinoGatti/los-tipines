@@ -6,6 +6,7 @@
   --azul:   #2F7DD1;
   --verde:  #3FB44A;
   --naranja:#FF7A1A;
+  --marron: #9b6b3a;   /* representativo de Peppi */
   --tinta:  #3a2a18;   /* marrón oscuro para texto */
   --pip-off:#e7dcc0;
 }
@@ -60,8 +61,25 @@ html,body{
 
 .hint{font-size:15px; opacity:.7; font-weight:600}
 
-/* === Selección de personaje === */
+/* === Selección de personaje (diorama + cajas de stats) === */
 .select-title{font-size:clamp(28px,5vw,46px); color:var(--rojo)}
+
+#select.screen{ flex-direction:row; align-items:stretch; gap:0; padding:0; }
+.sel-left{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px; padding:26px 24px 26px 36px; }
+.sel-left .select-title{ text-align:left; line-height:.95; }
+.sel-right{ position:relative; width:50%; transform:scale(1.18); transform-origin:bottom right; }
+.diorama{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; object-position:bottom right; pointer-events:none;
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.25)); }
+.hot{ position:absolute; top:14%; bottom:4%; background:transparent; border:0; padding:0; cursor:pointer; }
+.hot::after{ content:''; position:absolute; left:14%; right:14%; bottom:2%; height:9px; border-radius:6px;
+  background:var(--c); box-shadow:0 0 16px var(--c); opacity:0; transition:opacity .12s; }
+.hot:hover::after, .hot.active::after{ opacity:1; }
+
+.statbox{ background:#fff; border:4px solid var(--c,#ddd); border-radius:18px; padding:16px 18px;
+  max-width:380px; min-height:150px; box-shadow:0 10px 24px rgba(0,0,0,.15); }
+.statbox h3{ font-family:'DynaPuff',cursive; font-size:30px; margin:0 0 10px; color:var(--c); }
+.statbox .desc{ font-size:14px; font-weight:600; opacity:.85; margin:10px 0 0; }
+
 .cards{display:flex; gap:22px; flex-wrap:wrap; justify-content:center}
 
 .card{
@@ -99,6 +117,13 @@ html,body{
 }
 .overlay h2{font-family:'DynaPuff',cursive; font-size:44px; margin:0; color:var(--amarillo)}
 .overlay p{font-size:18px; font-weight:600; max-width:420px}
+
+/* pantalla de muerte: imagen del personaje con blur detrás del texto */
+.overlay.death{ background:rgba(0,0,0,.18); }
+.death-bg{ position:absolute; inset:0; background-size:cover; background-position:center;
+  filter:blur(3px) brightness(.65); }
+.overlay.death h2, .overlay.death .btn{ position:relative; z-index:1; }
+.overlay.death h2{ color:#fff; font-size:64px; text-shadow:0 3px 16px rgba(0,0,0,.85); }
 
 #game{position:absolute; inset:0; width:100%; height:100%; background:#bfe3ff}
 
