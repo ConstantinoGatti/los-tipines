@@ -1,0 +1,237 @@
+/* === Paleta plastilina (primarios vibrantes) === */
+:root{
+  --crema:  #F7F0D2;
+  --rojo:   #E2362D;
+  --amarillo:#FFC400;
+  --azul:   #2F7DD1;
+  --verde:  #3FB44A;
+  --naranja:#FF7A1A;
+  --tinta:  #3a2a18;   /* marrón oscuro para texto */
+  --pip-off:#e7dcc0;
+}
+
+*{box-sizing:border-box}
+html,body{
+  margin:0; height:100%;
+  /* cuarto oscuro para que resalte la tele */
+  background:
+    radial-gradient(120% 90% at 50% 18%, #3a3140 0%, #221c28 45%, #120e16 100%),
+    #0c0910;
+  font-family:'Nunito',system-ui,sans-serif;
+  color:var(--tinta);
+  overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+
+.screen{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:18px; padding:24px; text-align:center;
+}
+.hidden{display:none !important}
+
+/* === Tipografías de display === */
+.logo, .logo-sub, .select-title, .card h3{
+  font-family:'DynaPuff',cursive; font-weight:700;
+  letter-spacing:.5px; margin:0;
+}
+
+/* === Pantalla de inicio === */
+.title-card{display:flex; flex-direction:column; align-items:center; gap:10px}
+.logo{
+  font-size:clamp(48px,9vw,110px); color:var(--rojo);
+  line-height:.95; text-shadow:4px 4px 0 var(--amarillo), 8px 8px 0 rgba(0,0,0,.12);
+}
+.logo-sub{
+  font-size:clamp(20px,3vw,34px); color:var(--azul);
+  background:var(--amarillo); padding:4px 18px; border-radius:999px;
+  transform:rotate(-2deg); box-shadow:3px 3px 0 rgba(0,0,0,.15);
+}
+
+.btn{
+  font-family:'DynaPuff',cursive; font-size:28px; color:#fff;
+  background:var(--verde); border:none; border-radius:16px;
+  padding:14px 44px; margin-top:14px; cursor:pointer;
+  box-shadow:0 6px 0 #2c8a35; transition:transform .06s, box-shadow .06s;
+}
+.btn:hover{transform:translateY(-2px); box-shadow:0 8px 0 #2c8a35}
+.btn:active{transform:translateY(4px); box-shadow:0 2px 0 #2c8a35}
+
+.hint{font-size:15px; opacity:.7; font-weight:600}
+
+/* === Selección de personaje === */
+.select-title{font-size:clamp(28px,5vw,46px); color:var(--rojo)}
+.cards{display:flex; gap:22px; flex-wrap:wrap; justify-content:center}
+
+.card{
+  width:230px; background:#fff; border-radius:22px; padding:16px 16px 20px;
+  border:4px solid transparent;
+  box-shadow:0 10px 24px rgba(0,0,0,.12);
+  cursor:pointer; transition:transform .12s, border-color .12s, box-shadow .12s;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.card:hover{transform:translateY(-4px)}
+.card.selected{
+  border-color:var(--c); transform:translateY(-8px) scale(1.03);
+  box-shadow:0 16px 30px rgba(0,0,0,.2);
+}
+.card h3{font-size:30px; color:var(--c)}
+.card .retrato{
+  height:170px; width:100%; object-fit:contain;
+  filter:drop-shadow(3px 5px 4px rgba(0,0,0,.25));
+}
+.card .desc{font-size:13.5px; font-weight:600; opacity:.85; min-height:54px}
+
+/* === Barras de stats === */
+.stats{width:100%; display:flex; flex-direction:column; gap:7px}
+.stat{display:flex; align-items:center; gap:8px}
+.stat .lbl{font-size:11px; font-weight:800; width:74px; text-align:left; letter-spacing:.4px}
+.pips{display:flex; gap:4px; flex:1}
+.pip{height:12px; flex:1; border-radius:4px; background:var(--pip-off)}
+.pip.on{background:var(--c)}
+
+/* === Overlay de confirmación (Etapa 1) === */
+.overlay{
+  position:absolute; inset:0; background:rgba(58,42,24,.78);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; color:#fff; z-index:10;
+}
+.overlay h2{font-family:'DynaPuff',cursive; font-size:44px; margin:0; color:var(--amarillo)}
+.overlay p{font-size:18px; font-weight:600; max-width:420px}
+
+#game{position:absolute; inset:0; width:100%; height:100%; background:#bfe3ff}
+
+/* =========================================================
+   TELEVISOR CRT — el juego vive adentro de una tele
+   ========================================================= */
+.tv{
+  flex:0 0 auto;
+  transform-origin:center center;   /* fitTV() le pone scale() si no entra */
+}
+
+.tv-body{
+  position:relative;
+  display:flex; align-items:center; gap:26px;
+  padding:30px 26px 30px 30px;
+  border-radius:38px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 16%),
+    linear-gradient(180deg, rgba(0,0,0,0) 70%, rgba(0,0,0,.18) 100%),
+    linear-gradient(150deg, #ecd9b1 0%, #ddc59a 38%, #cbb082 72%, #bfa274 100%);
+  box-shadow:
+    0 46px 90px rgba(0,0,0,.65),
+    0 2px 0 rgba(255,255,255,.5) inset,
+    0 -14px 28px rgba(0,0,0,.22) inset,
+    0 0 0 6px rgba(255,255,255,.05) inset,
+    0 0 0 2px #a98e60;
+}
+
+/* marco / bisel oscuro alrededor del vidrio */
+.tv-screen{
+  position:relative;
+  padding:20px;
+  border-radius:34px;
+  background:linear-gradient(160deg, #34343c 0%, #202027 45%, #131318 100%);
+  box-shadow:
+    0 3px 2px rgba(255,255,255,.18),
+    inset 0 4px 10px rgba(0,0,0,.85),
+    inset 0 -3px 8px rgba(255,255,255,.05),
+    inset 0 0 0 2px #0c0c10;
+}
+
+/* el vidrio: acá adentro va el juego (960x540) */
+.screen-area{
+  position:relative;
+  width:960px; height:540px;
+  border-radius:18px; overflow:hidden;
+  background:var(--crema);
+  box-shadow:
+    inset 0 0 40px rgba(0,0,0,.45),
+    inset 0 0 90px rgba(0,0,0,.30);
+}
+
+/* reflejo + viñeta + scanlines suaves, sobre el juego */
+.glass{
+  position:absolute; inset:20px;
+  border-radius:18px; pointer-events:none;
+  background:
+    linear-gradient(125deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.05) 11%, rgba(255,255,255,0) 30%),
+    radial-gradient(125% 120% at 50% 46%, rgba(0,0,0,0) 58%, rgba(0,0,0,.28) 86%, rgba(0,0,0,.5) 100%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, rgba(0,0,0,0) 1px 3px);
+  box-shadow:inset 0 0 60px rgba(0,0,0,.35);
+}
+
+/* panel de controles a la derecha */
+.tv-panel{
+  align-self:stretch; width:128px;
+  display:flex; flex-direction:column; align-items:center; gap:18px;
+  padding:6px 0 4px;
+}
+.brand{
+  font-family:'DynaPuff',cursive; font-size:17px; letter-spacing:1px; color:#5b4a2c;
+  text-shadow:0 1px 0 rgba(255,255,255,.55), 0 -1px 0 rgba(0,0,0,.22);
+}
+.brand span{ color:#c0341d; }
+
+.dial{
+  width:76px; height:76px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg,#d4be91,#a98f61);
+  box-shadow:
+    inset 0 3px 6px rgba(255,255,255,.45),
+    inset 0 -5px 9px rgba(0,0,0,.35),
+    0 2px 4px rgba(0,0,0,.35);
+}
+.knob{
+  position:relative; width:50px; height:50px; border-radius:50%;
+  background:radial-gradient(circle at 38% 30%, #51515b 0%, #26262d 55%, #15151a 100%);
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.25), inset 0 -3px 5px rgba(0,0,0,.6), 0 3px 5px rgba(0,0,0,.5);
+}
+.knob::after{           /* indicador del dial */
+  content:''; position:absolute; left:50%; top:7px; width:4px; height:17px;
+  margin-left:-2px; border-radius:2px; background:#efe6cf; box-shadow:0 0 2px rgba(0,0,0,.6);
+}
+.knob.small{ width:40px; height:40px; }
+.knob.small::after{ height:12px; top:6px; }
+
+.power{
+  width:54px; height:26px; border:none; border-radius:7px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(#3b3b42,#1b1b20);
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.15), inset 0 -2px 3px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.45);
+}
+.led{
+  width:9px; height:9px; border-radius:50%; background:#ff5a3c;
+  box-shadow:0 0 9px 2px rgba(255,90,60,.95), inset 0 0 2px rgba(255,255,255,.7);
+}
+.grille{
+  width:104px; height:128px; margin-top:auto; border-radius:9px;
+  background:repeating-linear-gradient(#191610 0 3px, #b29c74 3px 7px);
+  box-shadow:inset 0 0 8px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.3);
+}
+
+/* tornillos en las esquinas */
+.screw{
+  position:absolute; width:17px; height:17px; border-radius:50%;
+  background:radial-gradient(circle at 36% 32%, #ecdfbe 0%, #b69d6f 60%, #8a7146 100%);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.7), inset 0 -2px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.45);
+}
+.screw::after{
+  content:''; position:absolute; inset:0; margin:auto; width:11px; height:2.5px;
+  background:rgba(0,0,0,.5); border-radius:2px; transform:rotate(42deg);
+}
+.screw.tl{left:14px; top:14px} .screw.tr{right:14px; top:14px}
+.screw.bl{left:14px; bottom:14px} .screw.br{right:14px; bottom:14px}
+
+/* base / pata */
+.tv-stand{
+  width:210px; height:22px; margin:-2px auto 0;
+  border-radius:0 0 16px 16px;
+  background:linear-gradient(#bda572,#83704b);
+  box-shadow:0 14px 26px rgba(0,0,0,.55);
+}
+.tv-stand::before{
+  content:''; display:block; width:120px; height:20px; margin:-20px auto 0;
+  background:linear-gradient(#cbb482,#9a8255); border-radius:5px 5px 0 0;
+}

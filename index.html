@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Los Tipines — El Juego</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DynaPuff:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- El juego vive DENTRO de una tele CRT -->
+  <div class="tv">
+    <div class="tv-body">
+      <div class="tv-screen">
+        <div class="screen-area">
+          <!-- Pantalla de inicio -->
+          <section id="title" class="screen">
+            <div class="title-card">
+              <h1 class="logo">LOS TIPINES</h1>
+              <p class="logo-sub">EL JUEGO</p>
+              <button id="btn-jugar" class="btn">JUGAR</button>
+              <p class="hint">Enter o clic para empezar</p>
+            </div>
+          </section>
+
+          <!-- Selección de personaje (tarjetas las arma game.js) -->
+          <section id="select" class="screen hidden">
+            <h2 class="select-title">ELEGÍ TU TIPÍN</h2>
+            <div id="cards" class="cards"></div>
+            <p class="hint">← → para moverte · Enter para elegir</p>
+          </section>
+
+          <!-- Gameplay -->
+          <canvas id="game" class="hidden" width="960" height="540"></canvas>
+        </div>
+        <div class="glass"></div><!-- reflejo + vidrio curvo -->
+      </div>
+
+      <!-- Panel de controles a la derecha -->
+      <aside class="tv-panel">
+        <div class="brand">TIPI<span>VISIÓN</span></div>
+        <div class="dial"><div class="knob"></div></div>
+        <div class="dial"><div class="knob small"></div></div>
+        <button class="power" title="power"><i class="led"></i></button>
+        <div class="grille"></div>
+      </aside>
+
+      <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
+    </div>
+    <div class="tv-stand"></div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
