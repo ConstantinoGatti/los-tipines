@@ -9,7 +9,7 @@ const CHARS = [
     jump:{ despegue:[], aire:7, aterriza:[3,4,6] },
     desc:'El más fuerte. Lento, pero salta bien y su pisotón es demoledor.' },
   { id:'matti', nombre:'MATTI', color:'var(--amarillo)',
-    stats:{ velocidad:5, salto:4, daño:1 }, frames:{ correr:6, saltar:6 },
+    stats:{ velocidad:5, salto:4, daño:2 }, frames:{ correr:6, saltar:6 },
     jump:{ despegue:[], aire:2, aterriza:[5] },
     desc:'El más ágil y veloz. Buen salto, aunque su pisotón es flojito.' },
   { id:'gatti', nombre:'GATTI', color:'var(--rojo)',
@@ -114,6 +114,7 @@ const BOSS_TRIGGER_X = ARENA_X0 + 110;          // el jugador entra y se frena a
 // ---- Árboles-plataforma (sprite con 3 superficies de contacto) ----
 const TREE_AR = 1982 / 1315;              // proporción del sprite
 const TREE_H = 240, TREE_W = TREE_H * TREE_AR;
+const TREE_SINK = 22;                     // hunde la base del tronco en el piso (draw+hitbox juntos)
 const TREE_X = [720, 1560, 2450, 3260];   // centros; el tronco apoya en el piso
 // superficies medidas del sprite, en fracciones [xIni, xFin, yTope]
 const TREE_SURF = [
@@ -122,7 +123,7 @@ const TREE_SURF = [
   [0.70, 0.90, 0.27],   // losa derecha
 ];
 function treePlatforms(cx){               // hitboxes one-way alineadas al sprite
-  const left = cx - TREE_W/2, top = GROUND_Y - TREE_H;
+  const left = cx - TREE_W/2, top = GROUND_Y + TREE_SINK - TREE_H;
   return TREE_SURF.map(([a, b, yf]) => ({
     x: left + a*TREE_W, y: top + yf*TREE_H, w: (b-a)*TREE_W, h: 14, tree:true,
   }));
@@ -433,7 +434,7 @@ function drawBackground(){
 
 function drawTrees(){
   if (!gfx.tree) return;
-  const top = GROUND_Y - TREE_H;
+  const top = GROUND_Y + TREE_SINK - TREE_H;
   for (const cx of TREE_X) ctx.drawImage(gfx.tree, cx - TREE_W/2 - camX, top, TREE_W, TREE_H);
 }
 
@@ -484,7 +485,7 @@ function draw(){
   if (shake > 0.5){ ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); shake *= 0.88; }
   else shake = 0;
   drawBackground();
-  if (mode === 'play') drawPiso();
+  drawPiso();                 // también en la arena del jefe (ahí no hay agujero)
   drawTrees();
   for (const pl of PLATFORMS) drawPlatform(pl);
 
