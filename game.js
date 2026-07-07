@@ -36,14 +36,25 @@ const INTRO = [
   'Sabían que si no lo detenían, el futuro completo cambiaría para siempre. La Soda se convertiría en un tirano implacable. Había que actuar rápido — y los tipines armaron un plan.',
   'Escondidos entre los arbustos, los tipines observaban en silencio. El patio estaba lleno de soldados soda, todos iguales, todos leales a él. La misión recién empezaba.',
 ];
-let introI = 0;
-function startIntro(){ state = 'intro'; introI = 0; showScreen('intro'); renderIntro(); }
-function renderIntro(){
-  $('#intro-img').src = `assets/pantallas/intro/${introI + 1}.png`;
-  $('#intro-caption').textContent = INTRO[introI];
+// pantallas de victoria (mismo formato que la intro). TODO: reemplazar por los textos reales
+const FIN = [
+  'Lo habían logrado. El Jefe Soda ya no era una amenaza, y los tipines por fin podían respirar tranquilos. Entre risas, abrazos y confeti, celebraron la victoria más dulce de todo el viaje.',
+  'Nadie lo vio venir: los tipines, sin buscarlo, se convirtieron en la primera presidencia triple de la historia. Desde el balcón de la Casa Rosada, con la bandera flameando detrás, saludaban a un país que ya los quería como suyos.',
+];
+
+// slideshow reusable: sirve para intro y para el final
+let slide = null;   // { dir, texts, i, done }
+function playSlides(dir, texts, done){
+  slide = { dir, texts, i:0, done };
+  state = 'slides'; showScreen('intro'); renderSlide();
 }
-function nextIntro(){ if (++introI >= INTRO.length) goSelect(); else renderIntro(); }
-$('#intro').addEventListener('click', () => { if (state === 'intro') nextIntro(); });
+function renderSlide(){
+  $('#intro-img').src = `assets/pantallas/${slide.dir}/${slide.i + 1}.png`;
+  $('#intro-caption').textContent = slide.texts[slide.i];
+}
+function nextSlide(){ if (++slide.i >= slide.texts.length) slide.done(); else renderSlide(); }
+function startIntro(){ playSlides('intro', INTRO, goSelect); }
+$('#intro').addEventListener('click', () => { if (state === 'slides') nextSlide(); });
 const canvas = $('#game'), ctx = canvas.getContext('2d');
 const CW = canvas.width, CH = canvas.height;
 
@@ -94,7 +105,7 @@ function choose(){ startGame(CHARS[selIndex]); }
 $('#btn-jugar').addEventListener('click', startIntro);
 document.addEventListener('keydown', e => {
   if (state === 'title' && (e.key === 'Enter' || e.key === ' ')) startIntro();
-  else if (state === 'intro' && (e.key === 'Enter' || e.key === ' ')) nextIntro();
+  else if (state === 'slides' && (e.key === 'Enter' || e.key === ' ')) nextSlide();
   else if (state === 'select'){
     const order = [2, 0, 1], pos = order.indexOf(selIndex);   // izq→der: gatti,peppi,matti
     if (e.key === 'ArrowRight') setSelected(order[(pos + 1) % 3]);
@@ -607,11 +618,9 @@ function gameOver(){
   ov.classList.add('death');
   ov.querySelector('button').onclick = () => returnToSelect(ov);
 }
-function winGame(){
-  const ov = overlay(`<h2>¡GANASTE!</h2>
-    <p>Derrotaste al Jefe Soda. 🎉</p>
-    <button class="btn">Volver</button>`);
-  ov.querySelector('button').onclick = () => returnToSelect(ov);
+function winGame(){                 // al ganar: slideshow final (formato intro) → título
+  running = false;
+  playSlides('fin', FIN, () => { mode = 'menu'; state = 'title'; showScreen('title'); });
 }
 
 // escala la TV completa SOLO si no entra en la ventana (nunca agranda → sprites nítidos)
