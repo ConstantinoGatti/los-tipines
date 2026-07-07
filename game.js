@@ -27,7 +27,23 @@ const STAT_LABELS = { velocidad:'VELOCIDAD', salto:'SALTO', daño:'DAÑO' };
 const MAX_PIPS = 5;
 
 const $ = sel => document.querySelector(sel);
-const screens = { title: $('#title'), select: $('#select') };
+const screens = { title: $('#title'), intro: $('#intro'), select: $('#select') };
+
+// ---- Intro (imágenes con texto, en orden) ----
+const INTRO = [
+  'El viaje los dejó agotados… pero al abrir los ojos reconocieron cada rincón. Estaban en casa, por fin. Gatti ya estaba metiendo las manos donde no debía, Peppi seguía masticando entre temblores, y Matti no le sacaba los ojos de encima a la máquina.',
+  'La pantalla se encendió y ahí estaba: la Soda, la misma que conocían, ahora coronado como el nuevo presidente. El silencio se cortó cuando los tres se dieron cuenta al mismo tiempo… era él.',
+  'Sabían que si no lo detenían, el futuro completo cambiaría para siempre. La Soda se convertiría en un tirano implacable. Había que actuar rápido — y los tipines armaron un plan.',
+  'Escondidos entre los arbustos, los tipines observaban en silencio. El patio estaba lleno de soldados soda, todos iguales, todos leales a él. La misión recién empezaba.',
+];
+let introI = 0;
+function startIntro(){ state = 'intro'; introI = 0; showScreen('intro'); renderIntro(); }
+function renderIntro(){
+  $('#intro-img').src = `assets/pantallas/intro/${introI + 1}.png`;
+  $('#intro-caption').textContent = INTRO[introI];
+}
+function nextIntro(){ if (++introI >= INTRO.length) goSelect(); else renderIntro(); }
+$('#intro').addEventListener('click', () => { if (state === 'intro') nextIntro(); });
 const canvas = $('#game'), ctx = canvas.getContext('2d');
 const CW = canvas.width, CH = canvas.height;
 
@@ -75,9 +91,10 @@ let state = 'title';
 function goSelect(){ state = 'select'; showScreen('select'); setSelected(selIndex); }
 function choose(){ startGame(CHARS[selIndex]); }
 
-$('#btn-jugar').addEventListener('click', goSelect);
+$('#btn-jugar').addEventListener('click', startIntro);
 document.addEventListener('keydown', e => {
-  if (state === 'title' && (e.key === 'Enter' || e.key === ' ')) goSelect();
+  if (state === 'title' && (e.key === 'Enter' || e.key === ' ')) startIntro();
+  else if (state === 'intro' && (e.key === 'Enter' || e.key === ' ')) nextIntro();
   else if (state === 'select'){
     const order = [2, 0, 1], pos = order.indexOf(selIndex);   // izq→der: gatti,peppi,matti
     if (e.key === 'ArrowRight') setSelected(order[(pos + 1) % 3]);
