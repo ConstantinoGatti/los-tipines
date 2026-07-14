@@ -55,6 +55,66 @@ function renderSlide(){
 function nextSlide(){ if (++slide.i >= slide.texts.length) slide.done(); else renderSlide(); }
 function startIntro(){ playSlides('intro', INTRO, goSelect); }
 $('#intro').addEventListener('click', () => { if (state === 'slides') nextSlide(); });
+
+// ===== Audio (Web Audio, sin archivos) =====
+let AC, masterGain, audioReady = false, musicOn = true;
+function initAudio(){
+  if (audioReady) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  masterGain = AC.createGain(); masterGain.gain.value = 0.9; masterGain.connect(AC.destination);
+  audioReady = true;
+  if (AC.state === 'suspended') AC.resume();
+  startMusic();
+}
+addEventListener('pointerdown', initAudio, { once:true });
+addEventListener('keydown',     initAudio, { once:true });
+
+function tone(freq, dur, type, vol, when = 0){        // una nota con envolvente
+  if (!audioReady) return;
+  const t = AC.currentTime + when, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(masterGain); o.start(t); o.stop(t + dur + 0.02);
+}
+function glide(f0, f1, dur, type, vol){               // nota con glide (efectos)
+  if (!audioReady) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(masterGain); o.start(t); o.stop(t + dur + 0.02);
+}
+const sfxJump = () => glide(320, 660, 0.14, 'square', 0.16);
+const sfxHeal = () => [523, 659, 880].forEach((f, i) => tone(f, 0.14, 'triangle', 0.16, i * 0.07));
+const sfxHit  = () => glide(430, 90, 0.16, 'square', 0.20);      // pisotón / hace daño
+const sfxHurt = () => glide(240, 55, 0.28, 'sawtooth', 0.22);    // recibe daño
+
+// música: dos loops (nivel y jefe), scheduler simple
+const MUSIC = {
+  main: { tempo:280, vol:0.07, type:'triangle', notes:[523,659,784,659, 880,784,659,587, 523,659,784,988, 880,784,659,587] },
+  boss: { tempo:190, vol:0.09, type:'sawtooth', notes:[220,220,262,220, 311,262,220,196, 220,262,311,349, 330,262,247,220] },
+};
+let musicTrack = 'main', musicStep = 0, musicStarted = false;
+function musicTick(){
+  const m = MUSIC[musicTrack];
+  if (musicOn && audioReady) tone(m.notes[musicStep % m.notes.length], m.tempo/1000 * 0.85, m.type, m.vol);
+  musicStep = (musicStep + 1) % 10000;
+  setTimeout(musicTick, m.tempo);
+}
+function startMusic(){ if (!musicStarted){ musicStarted = true; musicTick(); } }
+function setMusic(t){ musicTrack = t; }
+
+const musicIcon = $('#music-icon');
+$('#music-btn').addEventListener('click', e => {
+  e.stopPropagation(); initAudio();
+  musicOn = !musicOn;
+  musicIcon.src = `assets/iconos/${musicOn ? 2 : 1}.png`;   // 2=on(ondas) 1=off(X)
+});
 const canvas = $('#game'), ctx = canvas.getContext('2d');
 const CW = canvas.width, CH = canvas.height;
 
@@ -246,6 +306,7 @@ async function startGame(char){
   projectiles = [];
   pickups = PICKUP_XY.map(([x, y]) => ({ x, y, taken:false, t:Math.random()*6 }));
   camX = 0; animTick = 0; wasJump = false; mode = 'play';
+  setMusic('main');
 
   if (!running){ running = true; requestAnimationFrame(loop); }
 }
@@ -271,7 +332,7 @@ function update(){
     if (!gkeys['ArrowLeft'] && !gkeys['ArrowRight']) p.vx *= FRICTION;
     p.vx = Math.max(-p.maxSpeed, Math.min(p.maxSpeed, p.vx));
     const jumpKey = gkeys['ArrowUp'] || gkeys['Space'];   // salto en el flanco
-    if (jumpKey && !wasJump && p.onGround){ p.vy = -p.jump; p.onGround = false; }
+    if (jumpKey && !wasJump && p.onGround){ p.vy = -p.jump; p.onGround = false; sfxJump(); }
     wasJump = jumpKey;
   }
 
@@ -352,7 +413,7 @@ function updateSodas(p){
     }
     if (rectsOverlap(p, s)){           // pisotón vs golpe
       const cae = p.vy > 0 && (p.y + p.h) - s.y < 30;
-      if (cae){ s.dead = true; p.vy = -p.jump * 0.7; }
+      if (cae){ s.dead = true; p.vy = -p.jump * 0.7; sfxHit(); }
       else hurt();
     }
   }
@@ -363,7 +424,7 @@ function updatePickups(p){
     if (k.taken) continue;
     k.t += 0.08;
     const box = { x:k.x-18, y:k.y-18, w:36, h:36 };
-    if (rectsOverlap(box, p) && p.hearts < MAX_HEARTS){ k.taken = true; p.hearts++; }
+    if (rectsOverlap(box, p) && p.hearts < MAX_HEARTS){ k.taken = true; p.hearts++; sfxHeal(); }
   }
 }
 
@@ -396,7 +457,7 @@ function updateBoss(p){
       if (cae){
         p.vy = -p.jump * 0.85;                            // siempre rebota
         if (b.inv <= 0){                                  // solo daña si no es invencible
-          b.hp -= p.char.stats.daño; b.inv = 60;          // ~1s invencible (corta el exploit)
+          b.hp -= p.char.stats.daño; b.inv = 60; sfxHit();  // ~1s invencible (corta el exploit)
           if (b.hp <= 0){ b.dying = true; b.deadT = 0; }
         }
       } else hurt();
@@ -408,6 +469,7 @@ function updateBoss(p){
 
 function startBossEntrance(){
   mode = 'bossin';
+  setMusic('boss');
   player.vx = 0;                       // freno seco: el jugador queda quieto
   sodas = []; pickups = []; projectiles = [];
   boss = { x:BOSS_X, y:-BOSS_HB.h - 60, vy:0, landed:false,   // arranca arriba de pantalla
@@ -431,6 +493,7 @@ function hurt(){
   if (player.inv > 0) return;
   player.hearts--; player.inv = INVULN;
   player.vy = -5; player.vx = -player.face * 4;   // empujón
+  sfxHurt();
 }
 
 // ---- Dibujo ----
@@ -606,7 +669,7 @@ function overlay(html){
   return ov;
 }
 function returnToSelect(ov){
-  ov.remove(); running = false; mode = 'menu';
+  ov.remove(); running = false; mode = 'menu'; setMusic('main');
   state = 'select'; showScreen('select'); setSelected(selIndex);
 }
 function gameOver(){
@@ -620,7 +683,7 @@ function gameOver(){
 }
 function winGame(){                 // al ganar: slideshow final (formato intro) → título
   running = false;
-  playSlides('fin', FIN, () => { mode = 'menu'; state = 'title'; showScreen('title'); });
+  playSlides('fin', FIN, () => { mode = 'menu'; state = 'title'; showScreen('title'); setMusic('main'); });
 }
 
 // escala la TV completa SOLO si no entra en la ventana (nunca agranda → sprites nítidos)
