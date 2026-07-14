@@ -89,20 +89,29 @@ function glide(f0, f1, dur, type, vol){               // nota con glide (efectos
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(g).connect(masterGain); o.start(t); o.stop(t + dur + 0.02);
 }
-const sfxJump = () => glide(320, 660, 0.14, 'square', 0.16);
-const sfxHeal = () => [523, 659, 880].forEach((f, i) => tone(f, 0.14, 'triangle', 0.16, i * 0.07));
-const sfxHit  = () => glide(430, 90, 0.16, 'square', 0.20);      // pisotón / hace daño
-const sfxHurt = () => glide(240, 55, 0.28, 'sawtooth', 0.22);    // recibe daño
+const sfxJump = () => glide(300, 720, 0.16, 'square', 0.30);
+const sfxHeal = () => [523, 659, 880].forEach((f, i) => tone(f, 0.16, 'triangle', 0.28, i * 0.08));
+const sfxHit  = () => glide(480, 90, 0.16, 'square', 0.34);      // pisotón / hace daño
+const sfxHurt = () => glide(240, 55, 0.30, 'sawtooth', 0.34);    // recibe daño
 
-// música: dos loops (nivel y jefe), scheduler simple
+// música: dos loops. main tranquilo; boss intenso (más rápido + bajo/pulso)
 const MUSIC = {
-  main: { tempo:280, vol:0.07, type:'triangle', notes:[523,659,784,659, 880,784,659,587, 523,659,784,988, 880,784,659,587] },
-  boss: { tempo:190, vol:0.09, type:'sawtooth', notes:[220,220,262,220, 311,262,220,196, 220,262,311,349, 330,262,247,220] },
+  main: { tempo:280, vol:0.035, type:'triangle',
+    notes:[523,659,784,659, 880,784,659,587, 523,659,784,988, 880,784,659,587] },
+  boss: { tempo:145, vol:0.055, type:'sawtooth', bass:0.075,     // pelea: agresivo
+    notes:    [330,392,330,466, 349,330,294,349, 330,392,466,523, 494,466,392,330],
+    bassNotes:[ 82, 82, 82, 82,  87, 87, 82, 82,  82, 82, 98, 98,  87, 87, 82, 82] },
+  win: { tempo:200, vol:0.05, type:'triangle', bass:0.05,        // festejo: mayor, alegre
+    notes:    [523,659,784,1047, 880,784,1047,784, 659,784,880,1047, 1175,1047,880,784],
+    bassNotes:[131,131,196,196,  175,175,262,262,  131,131,196,196,  175,175,262,196] },
 };
 let musicTrack = 'main', musicStep = 0, musicStarted = false;
 function musicTick(){
   const m = MUSIC[musicTrack];
-  if (musicOn && audioReady) tone(m.notes[musicStep % m.notes.length], m.tempo/1000 * 0.85, m.type, m.vol);
+  if (musicOn && audioReady){
+    tone(m.notes[musicStep % m.notes.length], m.tempo/1000 * 0.85, m.type, m.vol);
+    if (m.bassNotes) tone(m.bassNotes[musicStep % m.bassNotes.length], m.tempo/1000 * 0.95, 'square', m.bass);
+  }
   musicStep = (musicStep + 1) % 10000;
   setTimeout(musicTick, m.tempo);
 }
@@ -458,7 +467,7 @@ function updateBoss(p){
         p.vy = -p.jump * 0.85;                            // siempre rebota
         if (b.inv <= 0){                                  // solo daña si no es invencible
           b.hp -= p.char.stats.daño; b.inv = 60; sfxHit();  // ~1s invencible (corta el exploit)
-          if (b.hp <= 0){ b.dying = true; b.deadT = 0; }
+          if (b.hp <= 0){ b.dying = true; b.deadT = 0; setMusic('win'); }   // corta la del jefe
         }
       } else hurt();
     }
